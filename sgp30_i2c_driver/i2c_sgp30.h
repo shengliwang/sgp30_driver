@@ -32,7 +32,6 @@ typedef int (*i2C_write_ptr)(uint8_t addr, const uint8_t *data, size_t data_len)
 typedef int (*i2C_read_ptr)(uint8_t addr, uint8_t * data, size_t buf_len);
 typedef void (*sleep_msec_ptr)(uint32_t mseconds);
 
-
 typedef struct i2c_sgp30_t{
     i2C_write_ptr i2c_write;
     i2C_read_ptr  i2c_read;
