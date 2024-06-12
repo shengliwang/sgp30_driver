@@ -61,7 +61,8 @@ static int s_i2c_sgp30_send_write_cmd(i2c_sgp30_handle_t handle,
     return SGP30_OK;
 }
 
-
+//在“Init_air_quality”命令之后,必须定期发送“Measure_air_quality”命令,间隔为1秒,以确保动态基线补偿算法
+//的正常运行。
 int i2c_sgp30_init(i2c_sgp30_handle_t      handle){
     uint16_t cmd = CMD_Init_air_quality;
     uint32_t duration = CMD_Init_air_quality_MAX_DURATION_TIME_MS;
@@ -128,7 +129,7 @@ int i2c_sgp30_get_baseline(i2c_sgp30_handle_t handle, uint16_t * baseline_co2eq,
     return SGP30_OK;
 }
 
-// not test!!
+// function not test!!
 int i2c_sgp30_set_baseline(i2c_sgp30_handle_t handle, uint16_t baseline_co2eq, uint16_t baseline_tvoc){
     uint16_t cmd = CMD_Set_baseline;
     uint32_t duration = CMD_Set_baseline_MAX_DURATION_TIME_MS;
@@ -149,7 +150,7 @@ int i2c_sgp30_set_baseline(i2c_sgp30_handle_t handle, uint16_t baseline_co2eq, u
     return SGP30_OK;
 }
 
-// not test!!
+// 湿度补偿可以设置一下。要买一个湿度传感器。(this function not test!!)
 int i2c_sgp30_set_humidity(i2c_sgp30_handle_t handle, uint16_t humidity){
     uint16_t cmd = CMD_Set_humidity;
     uint32_t duration = CMD_Set_humidity_MAX_DURATION_TIME_MS;
@@ -239,4 +240,5 @@ int i2c_sgp30_measure_raw_signals(i2c_sgp30_handle_t handle, uint16_t * H2_signa
     return SGP30_OK;
 }
 
+// todo： SGP30 动态基线补偿算法怎么实现的？
 

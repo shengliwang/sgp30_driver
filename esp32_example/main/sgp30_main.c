@@ -9,49 +9,31 @@
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_chip_info.h"
-#include "esp_flash.h"
 #include "esp_system.h"
 #include "driver/i2c_master.h"
 
 #include "i2c_sgp30.h"
 
 
-#define SCL_IO_PIN (CONFIG_I2C_MASTER_SCL)
-#define SDA_IO_PIN (CONFIG_I2C_MASTER_SDA)
-#define MASTER_FREQUENCY (CONFIG_I2C_MASTER_FREQUENCY)
+#define SCL_IO_PIN (CONFIG_I2C_MASTER_SCL) // default is 4
+#define SDA_IO_PIN (CONFIG_I2C_MASTER_SDA) // default is 5
 
 #define PORT_NUMBER -1
 
-// todo: I2C支持fastmode
-
-// sgp30驱动应注册函数指针进去，方便移植到其他平台。要注册睡眠或者delay函数到其中。
-
-//为了避免信号争用,微控制器必须只驱动SDA和SCL为低电平。
-
-//如果传感器在任何数据字节后没有收到主控的ACK,它将不会继续发送数据。
-
-//  发送“Init_air_quality”命令开始空气质量测量。
-//在“Init_air_quality”命令之后,必须定期发送“Measure_air_quality”命令,间隔为1秒,以确保动态基线补偿算法
-//的正常运行。
-
-// todo： SGP30使用动态基线补偿算法怎么实现的？
-// todo：湿度补偿可以设置一下。要买一个湿度传感器。
-
-i2c_master_dev_handle_t g_i2c_dev = NULL;
+static i2c_master_dev_handle_t g_i2c_dev = NULL;
 
 static int s_esp_i2c_write(uint8_t addr, const uint8_t *data, size_t data_len){
     (void)addr;
     if (ESP_OK != i2c_master_transmit(g_i2c_dev, data, data_len, -1)){
         return 1;
-    } // 无限等待？如果不是无限等待的话，data不能使用栈上的变量。
+    } // 无限等待？如果不是无限等待的话，data不能使用栈上的变量?
 
     return 0;
 }
 
 static int s_esp_i2c_read(uint8_t addr, uint8_t * data, size_t buf_len){
     (void)addr;
-    if (ESP_OK != i2c_master_receive(g_i2c_dev, data, buf_len, -1)){ // todo: 试试i2c_master transmit_recive函数，根据手册，这个函数好像不行。
+    if (ESP_OK != i2c_master_receive(g_i2c_dev, data, buf_len, -1)){
         return 1;
     }
 
@@ -59,7 +41,7 @@ static int s_esp_i2c_read(uint8_t addr, uint8_t * data, size_t buf_len){
 }
 
 static void s_esp_sleep_msec(uint32_t mseconds){
-    vTaskDelay(mseconds / portTICK_PERIOD_MS);   // todo: 这个可以直接使用us吗
+    vTaskDelay(mseconds / portTICK_PERIOD_MS);   
 }
 
 static esp_err_t s_app_i2c_bus_init(i2c_master_dev_handle_t * i2c_handle){
@@ -75,7 +57,7 @@ static esp_err_t s_app_i2c_bus_init(i2c_master_dev_handle_t * i2c_handle){
     ESP_ERROR_CHECK(i2c_new_master_bus(&i2c_bus_config, &bus_handle));
 
     i2c_device_config_t i2c_dev_conf = {
-        .scl_speed_hz = 1000, // or fast mode 400000
+        .scl_speed_hz = 100000, // or fast mode 400000,SGP30支持I2c fast mode模式
         .device_address = 0x58,
     };
 
@@ -83,13 +65,16 @@ static esp_err_t s_app_i2c_bus_init(i2c_master_dev_handle_t * i2c_handle){
 
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, &i2c_dev_conf, &i2c_dev));
 
-    //todo: i2c_master_bus_rm_device(i2c_dev);
+    
     *i2c_handle = i2c_dev;
 
     return ESP_OK;
 
 }
 
+void s_app_i2c_bus_deinit(void){
+    i2c_master_bus_rm_device(g_i2c_dev);
+}
 
 void app_main(void)
 {
